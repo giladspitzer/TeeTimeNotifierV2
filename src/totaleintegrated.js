@@ -74,7 +74,9 @@ exports.handler = async (event) => {
         return {error: 'PLAYER COUNT ERROR'};
     }
     await page.select(`select[name="dnn$ctr${COURSE_ID}$DefaultView$ctl01$dlTeeTimes$ctl${special_counter}$ddlNumPlayers"]`, PLAYERS.toString())
-    await page.click(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_dlTeeTimes_lnkBook_${counter}`)
+    await page.evaluate((COURSE_ID, counter) => {
+        document.getElementById(`dnn_ctr${COURSE_ID}_DefaultView_ctl01_dlTeeTimes_lnkBook_${counter}`).click()
+    }, COURSE_ID, counter)
     await page.waitForSelector('[placeholder="Email"]')
     let n = await page.evaluate(() => {
         return document.querySelector('[placeholder="Email"]').id
