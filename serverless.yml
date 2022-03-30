@@ -1,0 +1,27 @@
+# serverless.yml
+
+service: TeeTimeNotifier
+
+provider:
+  name: aws
+  region: us-west-1
+  versionFunctions: true
+  layers:
+    - arn:aws:lambda:${self:provider.region}:764866452798:layer:chrome-aws-lambda:10
+  runtime: nodejs12.x
+  memorySize: 2048
+  timeout: 120
+
+functions:
+  totaleintegrated:
+    handler: src/totaleintegrated.handler
+    environment:
+#      EMAIL: ${ssm:/golf-email~true}
+#      PASSWORD: ${ssm:/golf-password~true}
+  quick18:
+    handler: src/quick18.handler
+    environment:
+#      EMAIL: ${ssm:/golf-email~true}
+#      PASSWORD: ${ssm:/golf-password~true}
+
+

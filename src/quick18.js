@@ -1,20 +1,26 @@
-const puppeteer = require('puppeteer');
-const dotenv = require('dotenv');
+const chromium = require('chrome-aws-lambda');
+// const dotenv = require('dotenv');
 
 
-(async () => {
-    dotenv.config()
-    const browser = await puppeteer.launch({headless: false, autoClose: true});
+exports.handler = async (event) => {
+    // dotenv.config()
+      const browser = await chromium.puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
     const page = await browser.newPage();
-    await page.goto('https://baylandswalking.quick18.com/teetimes/course/1026/teetime/202204101140?psid=5432&p=0');
+    await page.goto(event.url);
 
-    const PLAYERS = 2;
+    const PLAYERS = event.players;
     const EMAIL = process.env.EMAIL
     const PASSWORD = process.env.PASSWORD
     let players_available = (await page.$$(`input[value="${PLAYERS}"]`)).length === 1
-    if(!players_available){
-        console.error('PLAYER COUNT ERROR')
-        await browser.close();
+    if (!players_available) {
+        // await browser.close();
+        return {error: 'PLAYER COUNT ERROR'};
     }
     await page.click(`input[value="${PLAYERS}"]`)
     await page.click('.be_details_checkout_btn')
@@ -28,14 +34,14 @@ const dotenv = require('dotenv');
     await page.click('button[type="submit"]');
 
 
-  await page.waitForSelector('#submitButton', {visible: true, timeout: 60000});
-  await page.evaluate(() => {
+    await page.waitForSelector('#submitButton', {visible: true, timeout: 60000});
+    await page.evaluate(() => {
         document.getElementById('submitButton').click()
     })
 
     page.waitForSelector('.be_confirm_details_col1')
         .then(() => {
-            console.warn('TEE TIME BOOKED!')
-            browser.close();
+            // browser.close();
+            return {success: 'TEE TIME BOOKED!'};
         })
-})();
+};

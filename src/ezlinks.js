@@ -1,9 +1,16 @@
-const puppeteer = require('puppeteer');
-const dotenv = require('dotenv');
+const chromium = require('chrome-aws-lambda');
+
+// const dotenv = require('dotenv');
 
 (async () => {
-  dotenv.config()
-  const browser = await puppeteer.launch({ headless: false, autoClose: true });
+  // dotenv.config()
+    const browser = await chromium.puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
   const page = await browser.newPage();
   await page.goto('https://hardingpark.ezlinksgolf.com/index.html#/search');
 

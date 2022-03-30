@@ -1,8 +1,19 @@
 {
-  "name": "teetimenotifierv2",
-  "version": "1.0.0",
+  "name": "TeeTimeNotifier_V2",
+  "version": "2.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "serverless": "^3.10.0"
+  },
   "dependencies": {
-    "dotenv": "^16.0.0",
-    "puppeteer": "^13.5.1"
+    "chrome-aws-lambda": "^10.1.0",
+    "puppeteer-core": "^13.5.1"
   }
 }
