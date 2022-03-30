@@ -1,9 +1,9 @@
 const chromium = require('chrome-aws-lambda');
-// const dotenv = require('dotenv');
+const dotenv = require('dotenv');
 
 
 exports.handler = async (event) => {
-    // dotenv.config()
+    dotenv.config()
       const browser = await chromium.puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,

@@ -1,14 +1,13 @@
 const chromium = require('chrome-aws-lambda');
-// const dotenv = require('dotenv');
+const dotenv = require('dotenv');
 
 exports.handler = async (event) => {
-    // dotenv.config()
+    dotenv.config()
     const monthNames = ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ];
       const browser = await chromium.puppeteer.launch({
       args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath,
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
