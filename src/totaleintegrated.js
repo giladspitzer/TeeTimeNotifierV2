@@ -35,7 +35,7 @@ exports.handler = async (event) => {
         return document.getElementById('customcaleder_0').parentElement.parentElement.parentElement.id.substring(7, 11)
     })
     if (COURSE_ID === undefined || COURSE_ID === -1 || COURSE_ID === null) {
-        // browser.close();
+        await browser.close();
         return {error: 'NO COURSE ID FOUND'};
     }
     await page.click(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_Calendar_dateInput`);
@@ -58,7 +58,7 @@ exports.handler = async (event) => {
         }
     }
     if (counter === -1) {
-        // await browser.close();
+        await browser.close();
         return {error: 'NO TEE TIME FOUND'};
     }
     let special_counter = counter
@@ -69,7 +69,7 @@ exports.handler = async (event) => {
         return document.querySelector(`[name="dnn$ctr${COURSE_ID}$DefaultView$ctl01$dlTeeTimes$ctl${special_counter}$ddlNumPlayers"]`).children.length
     }, COURSE_ID, special_counter)
     if (PLAYERS > players_allowed - 1) {
-        // await browser.close();
+        await browser.close();
         return {error: 'PLAYER COUNT ERROR'};
     }
     await page.select(`select[name="dnn$ctr${COURSE_ID}$DefaultView$ctl01$dlTeeTimes$ctl${special_counter}$ddlNumPlayers"]`, PLAYERS.toString())
@@ -124,15 +124,15 @@ exports.handler = async (event) => {
         document.querySelector('[value="Confirm Reservation"]').click()
     })
     if (payment_option) {
-        page.waitForSelector(`#mat-expansion-panel-header-0`)
+        return page.waitForSelector(`#mat-expansion-panel-header-0`)
             .then(() => {
-                // browser.close();
+                browser.close();
                 return {success: 'TEE TIME BOOKED!'};
             })
     } else {
-        page.waitForSelector(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_lblConfirmatonNumber`)
+        return page.waitForSelector(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_lblConfirmatonNumber`)
             .then(() => {
-                // browser.close();
+                browser.close()
                 return {success: 'TEE TIME BOOKED!'};
             })
     }
