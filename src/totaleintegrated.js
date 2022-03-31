@@ -39,11 +39,11 @@ exports.handler = async (event) => {
         return {error: 'NO COURSE ID FOUND'};
     }
     await page.click(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_Calendar_dateInput`);
-    let num_ = (await page.$$(`[title="${dateString}"`)).length
+    let num_ = (await page.$$(`[title="${dateString}"]`)).length
     if (num_ === 0) {
         await page.click(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_Calendar_calendar_NN`)
     }
-    await page.click(`[title="${dateString}"`)
+    await page.click(`[title="${dateString}"]`)
     await page.waitFor(5000);
     await page.waitForSelector('span.TeeBlock')
     let num = (await page.$$('span.TeeBlock')).length
