@@ -1,7 +1,9 @@
-# serverless.yml
+
 
 service: TeeTimeNotifier
-
+useDotenv: true
+plugins:
+  - serverless-dotenv-plugin
 
 provider:
   name: aws
@@ -16,13 +18,9 @@ provider:
 functions:
   totaleintegrated:
     handler: src/totaleintegrated.handler
-    environment:
-#      EMAIL: ${ssm:/golf-email~true}
-#      PASSWORD: ${ssm:/golf-password~true}
+
   quick18:
     handler: src/quick18.handler
-    environment:
-#      EMAIL: ${ssm:/golf-email~true}
-#      PASSWORD: ${ssm:/golf-password~true}
+
 
 
