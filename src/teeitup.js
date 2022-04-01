@@ -16,48 +16,46 @@ const dotenv = require('dotenv');
     // const PLAYERS = event.players;
     // const TIME = event.time
     // const DATE = event.date
-    await page.goto("https://corica-park-resident.book.teeitup.golf/?course=54f14e720c8ad60378b04ff3,54f14b6f0c8ad60378b00fff&date=2022-04-01&end=12&start=05");
+    await page.goto("https://the-course-at-wente-vineyards.book.teeitup.com/?course=54f14b650c8ad60378b00f3e&date=2022-04-21");
     const PLAYERS = 4;
-    const TIME = "8:45 AM"
+    const TIME = "3:20 PM"
     const EMAIL = process.env.EMAIL
     const PASSWORD = process.env.PASSWORD
 
     await page.waitForSelector('[placeholder="Enter Promo"]')
-    const timeAvailable = await page.evaluate((TIME) => {
-        let available = false;
-        document.querySelectorAll('[data-testid="teetimes-tile-time"]').forEach((e) => {
-            if(e.innerText === TIME){
-                available = true;
+    const rankOnPage = await page.evaluate((TIME) => {
+        let available = -1;
+        let elements = document.querySelectorAll('[data-testid="teetimes-tile-time"]');
+        for(let i = 0; i < elements.length; i++){
+            if(elements[i].innerText === TIME){
+                available = i;
             }
-        })
+        }
         return available
     }, TIME);
-    if(!timeAvailable){
+    if(rankOnPage < 0){
         await browser.close();
         return {error: 'NO TEE TIME FOUND'};
     }
-    const pplAvailable = await page.evaluate((TIME) => {
-        let cls = null;
-        let e = document.querySelectorAll('[data-testid="teetimes-tile-time"]').forEach((e) => {
-            if(e.innerText === TIME){
-                cls = e.className;
-            }
-        })
-        return document.getElementsByClassName(cls)[0].parentElement.nextElementSibling.lastElementChild.firstElementChild.lastElementChild.innerText
-    }, TIME);
-    if(!pplAvailable || (PLAYERS > 1 && pplAvailable[4] !== PLAYERS.toString())){
+    const pplAvailable = await page.evaluate((TIME, rankOnPage) => {
+        return document.querySelectorAll('[data-testid="teetimes-tile-available-players"]')[rankOnPage].innerText
+    }, TIME, rankOnPage);
+    if(!pplAvailable || !pplAvailable.includes(PLAYERS.toString())){
         await browser.close();
         return {error: 'PLAYER COUNT ERROR'};
     }
-    await page.evaluate((TIME) => {
-        let cls = null;
-        let e = document.querySelectorAll('[data-testid="teetimes-tile-time"]').forEach((e) => {
-            if(e.innerText === TIME){
-                cls = e.className;
-            }
-        })
-        return document.getElementsByClassName(cls)[0].parentElement.parentElement.lastElementChild.click()
-    }, TIME);
+    await page.evaluate((TIME, rankOnPage) => {
+        let rateBtns = document.querySelectorAll('[data-testid="teetimes_choose_rate_button"]')
+        let buyBtns = document.querySelectorAll('[data-testid="teetimes_book_now_button"]')
+        let cls = null
+        if(rateBtns.length > 0){
+            cls = rateBtns[0].classList[0];
+        }else{
+            cls = buyBtns[0].classList[0];
+        }
+        let teeTime = document.getElementsByClassName(cls)[rankOnPage]
+        teeTime.click();
+    }, TIME, rankOnPage);
 
 
     await page.waitForSelector(`[data-testid="button-value-${PLAYERS}"]`)
@@ -91,9 +89,9 @@ const dotenv = require('dotenv');
 
 
 
-    return page.waitForSelector(`[data-testid="confirmation-due-at-course-value"]`)
-            .then(() => {
-                browser.close();
-                return {success: 'TEE TIME BOOKED!'};
-            })
+    // return page.waitForSelector(`[data-testid="confirmation-due-at-course-value"]`)
+    //         .then(() => {
+    //             browser.close();
+    //             return {success: 'TEE TIME BOOKED!'};
+    //         })
 })();
