@@ -17,10 +17,12 @@ provider:
 
 functions:
   totaleintegrated:
-    handler: src/totaleintegrated.handler
+    handler: booking/src/totaleintegrated.handler
 
   quick18:
-    handler: src/quick18.handler
+    handler: booking/src/quick18.handler
 
+  ezlinks:
+    handler: booking/src/ezlinks.handler
 
 
