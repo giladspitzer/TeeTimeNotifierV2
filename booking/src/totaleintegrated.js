@@ -1,22 +1,43 @@
 const chromium = require('chrome-aws-lambda');
 const dotenv = require('dotenv');
+const AWS = require("aws-sdk");
+
 
 exports.handler = async (event) => {
     dotenv.config()
     const monthNames = ["January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     ];
-      const browser = await chromium.puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath,
-      headless: chromium.headless,
-      ignoreHTTPSErrors: true,
+    const browser = await chromium.puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath,
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
     });
+    const s3 = new AWS.S3();
     const page = await browser.newPage();
     page.setDefaultNavigationTimeout(50000);
+    process.on('unhandledRejection', async (err) => {
+        console.error(err)
+        if (process.env.ENV === 'prod') {
+            const screenshot = await page.screenshot({
+                path: `${Date.now()}_totaleintegrated.png`,
+                fullPage: true
+            })
+            const params = {
+                Bucket: process.env.BUCKET_NAME,
+                Key: `${Date.now().toString()}_totaleintegrated.png`,
+                Body: screenshot
+            };
+            await s3.putObject(params).promise()
+            await browser.close()
+        }
+    });
     await page.goto(event.url);
     const PLAYERS = event.players;
-    const TIME = event.time
+    const START = event.start
+    const END = event.end
     const DATE = event.date
     const EMAIL = process.env.EMAIL
     const PASSWORD = process.env.PASSWORD
@@ -46,17 +67,38 @@ exports.handler = async (event) => {
     await page.click(`[title="${dateString}"]`)
     await page.waitFor(5000);
     await page.waitForSelector('span.TeeBlock')
-    let num = (await page.$$('span.TeeBlock')).length
-    let counter = -1
-    for (let i = 0; i < num; i++) {
-        if (await page.evaluate((COURSE_ID, i, TIME) => {
-            if (document.getElementById(`dnn_ctr${COURSE_ID}_DefaultView_ctl01_dlTeeTimes_lblTeeTime_${i}`).innerText === TIME) {
-                return true
+    let counter = await page.evaluate((COURSE_ID, start, end, players) => {
+        const transformTimeToInt = (timeString) => {
+            let total = 0;
+            if(parseInt(timeString.split(':')[0]) !== 12){
+                total += (parseInt(timeString.split(':')[0]) * 60)
             }
-        }, COURSE_ID, i, TIME)) {
-            counter = i;
+            total += (parseInt(timeString.split(':')[1].split(" ")[0]))
+            if (timeString.split(" ")[1] === "PM") {
+                total += 720;
+            }
+            return total
         }
-    }
+        let times = document.querySelectorAll('span.TeeBlock')
+        const start_int = transformTimeToInt(start)
+        const end_int = transformTimeToInt(end)
+        for (let i = 0; i < times.length; i++) {
+            let special_counter = i;
+            if (i < 10) {
+                special_counter = '0' + i
+            }
+            let players_allowed = document.querySelector(`[name="dnn$ctr${COURSE_ID}$DefaultView$ctl01$dlTeeTimes$ctl${special_counter}$ddlNumPlayers"]`).children.length;
+            if (players <= players_allowed - 1) {
+                let time = document.getElementById(`dnn_ctr${COURSE_ID}_DefaultView_ctl01_dlTeeTimes_lblTeeTime_${i}`).innerText
+                let time_int = transformTimeToInt(time);
+                if (time_int >= start_int && time_int <= end_int) {
+                    return i
+                }
+            }
+        }
+        return -1;
+    }, COURSE_ID, START, END, PLAYERS)
+
     if (counter === -1) {
         await browser.close();
         return {error: 'NO TEE TIME FOUND'};
@@ -64,13 +106,6 @@ exports.handler = async (event) => {
     let special_counter = counter
     if (counter < 10) {
         special_counter = '0' + counter
-    }
-    let players_allowed = await page.evaluate((COURSE_ID, special_counter) => {
-        return document.querySelector(`[name="dnn$ctr${COURSE_ID}$DefaultView$ctl01$dlTeeTimes$ctl${special_counter}$ddlNumPlayers"]`).children.length
-    }, COURSE_ID, special_counter)
-    if (PLAYERS > players_allowed - 1) {
-        await browser.close();
-        return {error: 'PLAYER COUNT ERROR'};
     }
     await page.select(`select[name="dnn$ctr${COURSE_ID}$DefaultView$ctl01$dlTeeTimes$ctl${special_counter}$ddlNumPlayers"]`, PLAYERS.toString())
     await page.evaluate((COURSE_ID, counter) => {
@@ -93,11 +128,10 @@ exports.handler = async (event) => {
     await page.focus(`#${q}`);
     await page.type(`#${q}`, PASSWORD, {delay: 100})
 
-    let c = await page.evaluate(() => {
-        return document.querySelector('[data-name="Login"]').id
+    await page.evaluate(() => {
+        return document.querySelector('[data-name="Login"]').click()
     })
 
-    await page.click(`#${c}`)
     await page.waitForSelector(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_countdown`, {visible: true, timeout: 120000});
     let payment_option = (await page.$$('#PayAtCourse')).length > 0
     if (payment_option) {
