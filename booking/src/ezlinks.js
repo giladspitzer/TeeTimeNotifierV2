@@ -107,7 +107,9 @@ exports.handler = async (event) => {
     let nthTeeTimer = await page.evaluate((start, end) => {
         const transformTimeToInt = (timeString) => {
             let total = 0;
-            total += (parseInt(timeString.split(':')[0]) * 60)
+            if(parseInt(timeString.split(':')[0]) !== 12){
+                total += (parseInt(timeString.split(':')[0]) * 60)
+            }
             total += (parseInt(timeString.split(':')[1].split(" ")[0]))
             if (timeString.split(" ")[1] === "PM") {
                 total += 720;
