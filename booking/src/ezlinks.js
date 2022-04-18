@@ -1,9 +1,13 @@
 const chromium = require('chrome-aws-lambda');
 const dotenv = require('dotenv');
 const AWS = require("aws-sdk");
+const Sentry = require("@sentry/serverless");
+Sentry.AWSLambda.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
 
-
-exports.handler = async (event) => {
+exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
     dotenv.config()
     const browser = await chromium.puppeteer.launch({
         args: chromium.args,
@@ -32,7 +36,7 @@ exports.handler = async (event) => {
             await browser.close()
         }
     });
-    const URL = event.url
+    const URL = event.url;
     const PLAYERS = event.players;
     const START = event.start
     const END = event.end
@@ -175,4 +179,6 @@ exports.handler = async (event) => {
         console.log({success: 'TEE TIME BOOKED!', teeTime: e});
         browser.close();
     })
-};
+});
+
+

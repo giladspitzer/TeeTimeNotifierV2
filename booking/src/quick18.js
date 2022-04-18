@@ -1,12 +1,17 @@
 const chromium = require('chrome-aws-lambda');
 const dotenv = require('dotenv');
 const AWS = require("aws-sdk");
+const Sentry = require("@sentry/serverless");
+Sentry.AWSLambda.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
 
-exports.handler = async (event) => {
+exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
     dotenv.config()
     const browser = await chromium.puppeteer.launch({
         args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
+        // defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath,
         headless: chromium.headless,
         ignoreHTTPSErrors: true,
@@ -30,18 +35,57 @@ exports.handler = async (event) => {
             await browser.close()
         }
     });
-    await page.goto(event.url);
-
+    const DATE = event.date
+    const URL = event.url
     const PLAYERS = event.players;
+    const START = event.start
+    const END = event.end
     const EMAIL = process.env.EMAIL
     const PASSWORD = process.env.PASSWORD
-    let players_available = (await page.$$(`input[value="${PLAYERS}"]`)).length === 1
-    if (!players_available) {
-        // await browser.close();
-        return {error: 'PLAYER COUNT ERROR'};
+    let url = URL + `?teedate=${DATE.split('/')[2]}${DATE.split('/')[0]}${DATE.split('/')[1]}`
+    await page.goto(url);
+    await page.waitForSelector('#be_search_messages')
+    await page.select(`#SearchForm_Players`, PLAYERS.toString())
+    await page.click('[type="submit"]')
+    await page.waitForSelector('#be_search_messages')
+    const rankOnPage = await page.evaluate((start, end) => {
+        const transformTimeToInt = (timeString) => {
+            let total = 0;
+            if (parseInt(timeString.split(':')[0]) !== 12) {
+                total += (parseInt(timeString.split(':')[0]) * 60)
+            }
+            total += (parseInt(timeString.split(':')[1].substr(0,2)))
+            if (timeString.includes('PM')) {
+                total += 720;
+            }
+            return total
+        }
+        const start_int = transformTimeToInt(start)
+        const end_int = transformTimeToInt(end)
+        let elements = document.getElementsByClassName('mtrxTeeTimes');
+        for (let i = 0; i < elements.length; i++) {
+            let time = transformTimeToInt(elements[i].innerText)
+            if (time >= start_int && time <= end_int) {
+                return i
+            }
+        }
+        return -1
+    }, START, END);
+    if (rankOnPage < 0) {
+        console.log('NO TEE TIME FOUND')
+        await browser.close();
+        return {error: 'NO TEE TIME FOUND'};
     }
+    await page.evaluate((rankOnPage) => {
+        let btns = document.getElementsByClassName('teebutton')
+        btns[2+((rankOnPage)*3)].click()
+    }, rankOnPage);
+    await page.waitForSelector(`input[value="${PLAYERS}"]`)
     await page.click(`input[value="${PLAYERS}"]`)
-    await page.click('.be_details_checkout_btn')
+    await page.evaluate(() => {
+         window.scrollTo(0, document.body.scrollHeight);
+        document.querySelector('[type="submit"]').click()
+    })
 
     await page.waitForSelector('#EmailAddress');
     await page.waitForSelector('#Password');
@@ -62,4 +106,4 @@ exports.handler = async (event) => {
             // browser.close();
             return {success: 'TEE TIME BOOKED!'};
         })
-};
+});
