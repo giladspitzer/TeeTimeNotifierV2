@@ -134,7 +134,9 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
         return nthTeeTime;
     }, START, END)
     if (nthTeeTimer === -1) {
+        browser.close();
         return {error: 'No Time Found'};
+
     }
     await page.evaluate((nthTeeTimer) => {
         document.getElementsByClassName('player-info')[nthTeeTimer].lastElementChild.click()
@@ -178,6 +180,7 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
     }).then((e) => {
         console.log({success: 'TEE TIME BOOKED!', teeTime: e});
         browser.close();
+        return{success: 'TEE TIME BOOKED!', teeTime: e};
     })
 });
 

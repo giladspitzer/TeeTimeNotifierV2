@@ -1,28 +1,48 @@
-
-
 service: TeeTimeNotifier
 useDotenv: true
 plugins:
   - serverless-dotenv-plugin
+#  - serverless-python-requirements
+
+package:
+  exclude:
+#    - node_modules/**
+    - venv/**
 
 provider:
   name: aws
   region: us-west-1
   versionFunctions: true
-  layers:
-    - arn:aws:lambda:${self:provider.region}:764866452798:layer:chrome-aws-lambda:10
-  runtime: nodejs12.x
   memorySize: 2048
   timeout: 120
+  profile: ttn
 
 functions:
   totaleintegrated:
     handler: booking/src/totaleintegrated.handler
 
+    runtime: nodejs12.x
+
   quick18:
     handler: booking/src/quick18.handler
+    layers:
+      - arn:aws:lambda:${self:provider.region}:764866452798:layer:chrome-aws-lambda:10
+    runtime: nodejs12.x
 
   ezlinks:
     handler: booking/src/ezlinks.handler
+    layers:
+      - arn:aws:lambda:${self:provider.region}:764866452798:layer:chrome-aws-lambda:10
+    runtime: nodejs12.x
+
+  teeitup:
+    handler: booking/src/teeitup.handler
+    layers:
+      - arn:aws:lambda:${self:provider.region}:764866452798:layer:chrome-aws-lambda:10
+    runtime: nodejs12.x
+
+  driver:
+    handler: driver/main.lambda_handler
+    runtime: python3.9
 
 

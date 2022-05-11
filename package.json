@@ -11,7 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "serverless": "^3.10.0",
-    "serverless-dotenv-plugin": "^3.12.2"
+    "serverless-dotenv-plugin": "^3.12.2",
+    "serverless-python-requirements": "^5.4.0"
   },
   "dependencies": {
     "@sentry/serverless": "^6.19.6",

@@ -103,7 +103,7 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
 
     page.waitForSelector('.be_confirm_details_col1')
         .then(() => {
-            // browser.close();
+            browser.close();
             return {success: 'TEE TIME BOOKED!'};
         })
 });
