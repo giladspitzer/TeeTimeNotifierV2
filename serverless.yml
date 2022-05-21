@@ -1,4 +1,4 @@
-service: TeeTimeNotifier
+service: TeeTimeBooker
 useDotenv: true
 plugins:
   - serverless-dotenv-plugin
@@ -6,7 +6,7 @@ plugins:
 
 package:
   exclude:
-#    - node_modules/**
+    - node_modules/puppeteer/**
     - venv/**
 
 provider:
@@ -40,9 +40,9 @@ functions:
     layers:
       - arn:aws:lambda:${self:provider.region}:764866452798:layer:chrome-aws-lambda:10
     runtime: nodejs12.x
-
-  driver:
-    handler: driver/main.lambda_handler
-    runtime: python3.9
-
-
+#
+#  driver:
+#    handler: driver/main.lambda_handler
+#    runtime: python3.9
+#
+#

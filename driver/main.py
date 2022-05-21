@@ -2,14 +2,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 import gspread
 from datetime import datetime, timedelta
-import os
 from dotenv import load_dotenv
 import boto3
 import json
-from logging import warn
 import pytz
 load_dotenv()
-
+import os
 
 class Course:
     def __init__(self, row):
@@ -41,9 +39,10 @@ class Course:
         }
         if self.course_id != '0':
             payload['courseId'] = self.course_id
-        warn(f'booking tee time for {self.name} for {payload["date"]}, {payload["start"]} - {payload["end"]} for {payload["players"]} players')
-        i = sls.invoke(FunctionName=f'TeeTimeNotifier-dev-{self.course_type}', InvocationType='RequestResponse', Payload=json.dumps(payload))
-        print(json.loads(i['Payload'].read()))
+        print(f'booking tee time for {self.name} for {payload["date"]}, {payload["start"]} - {payload["end"]} for {payload["players"]} players')
+        # i = sls.invoke(FunctionName=f'TeeTimeBooker-dev-{self.course_type}', InvocationType='RequestResponse', Payload=json.dumps(payload))
+        os.system(f"cd .. && serverless invoke local --function {self.course_type} --data '{json.dumps(payload)}'")
+        # print(json.loads(i['Payload'].read()))
 
 
 class Event:
@@ -79,7 +78,7 @@ def open_calendar(creds):
 
 
 def is_on(html, name):
-    if html.split(name + ":")[1].strip()[0] == "✅":
+    if html.split(name + ":")[1].replace(" ", "").replace("&nbsp;", "")[0] == "✅":
         return True
     return False
 
@@ -106,15 +105,23 @@ def lambda_handler(event, context):
                            singleEvents=True,
                            orderBy='startTime'
                            ).execute().get('items', [])
+    booked_events = calendar.list(calendarId=os.environ.get('EMAIL'),
+                           timeMin=now,
+                           maxResults=(max_days_out - min_days_in),
+                           singleEvents=True,
+                           orderBy='startTime').execute().get('items', [])
     for event in events:
         description = event['description']
         if is_on(description, "STATUS"):
             e = Event(event)
-            print(e.start)
             for course in courses:
-                print(course)
-                print(is_on(description, course.name))
-                if is_on(description, course.name) and course.in_time_range(e.raw_start):
+                booked_already = len([x for x in booked_events if
+                                      event['start']['dateTime'].split('T')[
+                                          0] in x['start'][
+                                          'dateTime'] and course.name in x[
+                                          'summary']]) > 0
+                if is_on(description, course.name) and course.in_time_range(e.raw_start) and not booked_already:
+
                     e.add_course(course)
             e.book_times()
 
