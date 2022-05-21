@@ -3,14 +3,15 @@ const dotenv = require('dotenv');
 const AWS = require("aws-sdk");
 const Sentry = require("@sentry/serverless");
 Sentry.AWSLambda.init({
-  dsn: process.env.SENTRY_DSN,
-  tracesSampleRate: 1.0,
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
 });
 
 exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
     dotenv.config()
+    let args = chromium.args
     const browser = await chromium.puppeteer.launch({
-        args: chromium.args,
+        args: args,
         defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath,
         headless: chromium.headless,
@@ -50,7 +51,7 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
         return url
     }
     let url = makeURL()
-    await page.goto(url);
+
     const EMAIL = process.env.EMAIL
     const PASSWORD = process.env.PASSWORD
     const PHONE = process.env.PHONE
@@ -64,7 +65,17 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
         name: process.env.CREDIT_CARD_NAME,
         country: process.env.CREDIT_CARD_COUNTRY
     }
-    await page.waitForSelector('[placeholder="Enter Promo"]')
+    await page.goto(url);
+    try {
+        await page.waitForSelector('[data-testid="teetimes-promo"]')
+    } catch (e) {
+        return {
+            'error': e, 'page': await page.evaluate(() => {
+                return document.body.innerHTML
+            })
+        }
+    }
+
     const rankOnPage = await page.evaluate((start, end) => {
         const transformTimeToInt = (timeString) => {
             let total = 0;
@@ -122,7 +133,7 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
     await page.waitFor(4000);
 
     await page.waitForSelector(`[data-testid="terms-and-conditions-checkbox"]`)
-    if(await page.evaluate(() => {
+    if (await page.evaluate(() => {
         return document.querySelectorAll('[data-testid="payment-options-card"]').length > 0
     })) {
 
@@ -148,10 +159,10 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
         let selectValues = {
             '[name="Payment.CC.ExpirationMonth"]': CARD.month,
             '[name="Payment.CC.ExpirationYear"]': CARD.year,
-            '[name="Payment.Address.Country"]':  CARD.country
+            '[name="Payment.Address.Country"]': CARD.country
         }
         // await page.waitForSelector([name="Payment.CC.ExpirationMonth"], {visible: true, timeout: 60000});
-        for(let i = 0; i < Object.keys(selectValues).length; i++){
+        for (let i = 0; i < Object.keys(selectValues).length; i++) {
             await page.evaluate((key, val) => {
                 document.querySelector(key).previousElementSibling.click()
                 document.querySelector(`[data-value="${val}"]`).click()
@@ -174,10 +185,7 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
     await page.waitForSelector(`[data-testid="make-your-reservation-btn"]`)
     await page.click(`[data-testid="make-your-reservation-btn"]`)
 
-
-    return page.waitForSelector(`[data-testid="confirmation-due-at-course-value"]`)
-            .then(() => {
-                browser.close();
-                return {success: 'TEE TIME BOOKED!'};
-            })
+    await page.waitForNetworkIdle()
+    await browser.close();
+    return {success: 'TEE TIME BOOKED!'};
 });

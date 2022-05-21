@@ -138,12 +138,8 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
     })
 
     await page.waitForSelector(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_countdown`, {visible: true, timeout: 120000});
-    let payment_option = (await page.$$('#PayAtCourse')).length > 0
-    if (payment_option) {
-        await page.evaluate(() => {
-            document.getElementById('PayAtCourse').click()
-        })
-    }
+
+
 
     let fNames = ['Sam', 'Daniel', 'John']
     let lNames = ['Jacobs', 'Elliot', 'Packard']
@@ -158,23 +154,38 @@ exports.handler = Sentry.AWSLambda.wrapHandler(async (event) => {
         }, i + 2, fNames[i], lNames[i])
     }
 
-
+    const payment_option = await page.evaluate(() => {
+        const payment = document.querySelectorAll('#PayAtCourse').length > 0
+        if(payment){
+            document.querySelector('#PayAtCourse').click()
+        }
+        return payment
+    })
     await page.evaluate(() => {
         document.querySelector('[value="Confirm Reservation"]').click()
     })
-    if (payment_option) {
-        return page.waitForSelector(`#mat-expansion-panel-header-0`)
-            .then(() => {
-                browser.close();
-                return {success: 'TEE TIME BOOKED!'};
-            })
-    } else {
-        return page.waitForSelector(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_lblConfirmatonNumber`)
-            .then(() => {
-                browser.close()
-                return {success: 'TEE TIME BOOKED!'};
-            })
-    }
+    await page.waitForNetworkIdle()
+    await browser.close();
+    return {success: 'TEE TIME BOOKED!'};
+    // if (payment_option) {
+    //     return page.waitForSelector(`#mat-expansion-panel-header-0`)
+    //         .then(() => {
+    //             browser.close();
+    //             return {success: 'TEE TIME BOOKED!'};
+    //         })
+    //         .catch((err) => {
+    //             return {success: false}
+    //         })
+    // } else {
+    //     return page.waitForSelector(`#dnn_ctr${COURSE_ID}_DefaultView_ctl01_lblConfirmatonNumber`)
+    //         .then(() => {
+    //             browser.close()
+    //             return {success: 'TEE TIME BOOKED!'};
+    //         })
+    //         .catch((err) => {
+    //             return {success: false}
+    //         })
+    // }
 
 
 });
